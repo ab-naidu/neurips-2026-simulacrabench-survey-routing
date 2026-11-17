@@ -1,0 +1,1 @@
+# The hosted SimulacraBench image already provides numpy and pandas.

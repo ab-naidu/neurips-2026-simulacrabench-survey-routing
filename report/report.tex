@@ -1,0 +1,238 @@
+% Adapted from the official SimulacraBench technical report template.
+\documentclass{article}
+\PassOptionsToPackage{numbers,sort&compress}{natbib}
+\usepackage[final]{neurips_2026}
+\makeatletter
+\providecommand{\@trackname}{40th Conference on Neural Information Processing Systems (NeurIPS 2026). SimulacraBench Competition.}
+\makeatother
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs,amsmath,amssymb,url,hyperref}
+\hypersetup{hidelinks}
+\title{Estimating Survey Skip Probabilities and\\Combining Predictors by Question}
+\author{Appalanaidu Bobbili}
+\begin{document}
+\maketitle
+\begin{center}\small\begin{tabular}{l}\toprule
+\textbf{Team ID:} Survey Routing \quad (Test submission 1057678)\\\bottomrule
+\end{tabular}\end{center}
+
+\begin{abstract}
+Survey questionnaires use skip rules to determine who receives a follow-up.
+We estimate the probability of being asked from visible survey records, allowing
+exceptions to the prescribed rule. When the preceding answer is also hidden, we
+average over its possible values, including its own skip outcome. For each
+question, we use held-out visible respondents to select a mixture of this
+predictor and a categorical naive Bayes predictor. In a synthetic experiment
+with deliberately imperfect rules, estimating skip probabilities increased
+mean log score from $-1.579$ to $-0.910$ nats per cell against the same answer
+model with hard rules. Under exact rules both methods scored $-0.510$ to three
+decimals. On a separate synthetic draw, the mixture improved mean normalized
+skill from 0.2844 to 0.2930 versus naive Bayes alone. These comparisons used
+a uniform question prior. The submitted mixture achieved a displayed overall
+skill score of 0.35 on the official SimulacraBench Test evaluation.
+\end{abstract}
+
+\section{Method summary}
+\subsection{Method type}
+\begin{tabular}{@{}ll@{}}
+$\boxtimes$ Bayesian / hierarchical model & $\boxtimes$ Imputation\\
+$\boxtimes$ Supervised prediction & $\boxtimes$ Ensemble of multiple components\\
+\end{tabular}\\[3pt]
+An optional language model supplies a prior over the substantive answers.
+
+\subsection{Pipeline}
+Consider a follow-up prescribed after a positive response. Two probabilities
+matter: how often the respondent receives the follow-up, and which answer they
+give if asked. We estimate both. The first predictor uses the organizer's
+hierarchical answer model~\cite{starter} and replaces its deterministic skip
+rule with rates estimated from visible records. The second predicts every
+outcome, including the skip, directly from visible attributes. A held-out
+comparison determines how much weight each predictor receives for each item.
+
+\subsection{Inputs and feature construction}
+Both predictors use categorical \texttt{GIVEN} attributes and the complete
+responses available in the instrument. We read the answer levels, their order,
+and the skip-rule parent from the schema. A skip is a scored category distinct
+from refusals and other recorded responses. The respondent identifier is
+excluded. A skipped value on a visible attribute has its own feature level.
+Only the question wording, options and public survey description
+enter the optional language-model prompt.
+
+\newpage
+\subsection{Model or simulator}
+For parent level $k$, let $n_k$ count visible parent--child pairs and $a_k$
+count how often the child was asked. Group levels by the prescribed state
+$b\in\{0,1\}$ (closed or open), with pooled counts $N_b$ and $A_b$. We use
+\[
+ r_b=\frac{A_b+8b+0.5}{N_b+9},\qquad r_k=\frac{a_k+8r_b}{n_k+8}.
+\]
+A rare level borrows evidence from levels with the same prescribed state.
+If the parent is hidden, $P(\mathrm{asked}\mid x)=\sum_k P(k\mid x)r_k$ uses
+the full predicted parent distribution, including its own skip when applicable.
+The conditional answer predictor shrinks counts from up to two visible
+attributes toward successively coarser strata.
+
+\subsection{Fitting, training, or prompting}
+For each instrument we mask every target answer of a random fifth of the
+complete visible respondents (seed 2026). Both predictors use the remaining
+rows. For each question we choose a mixing weight by the mean log probability
+of the observed answers on these masked rows, then refit on all visible
+respondents. Appendix~\ref{config} specifies the weight grid and the inner
+validation used for naive Bayes.
+
+\subsection{Prediction and aggregation}
+For a gated item, the first predictor multiplies its probability of each
+substantive answer by $P(\mathrm{asked}\mid x)$, then appends the skip
+probability. The final vector mixes this distribution with the second
+predictor's full distribution. Each masked cell contributes one vector in row
+and schema order. Respondents receive equal weight within an item.
+
+\subsection{Post-processing and calibration}
+The outer weight search applies the grader's floor $\varepsilon=0.001$ in
+the logarithmic score~\cite{scores}. We return normalized vectors before
+flooring. The grader applies the floor once.
+
+\section{Models, data, and compute}
+\begin{center}\small
+\begin{tabular}{@{}ll@{}}\toprule
+Component & Role and provenance\\\midrule
+Qwen2.5-1.5B-Instruct~\cite{qwen} & Optional item prior, offline weights, no fine-tuning\\
+SituatedEvals external-model example~\cite{starter} & Conditional answer counts and prompt construction\\
+Categorical naive Bayes & Shrunk attribute likelihoods and a marginal fallback\\
+\bottomrule\end{tabular}
+\end{center}
+\paragraph{Data.} Local evaluations use the official
+schema-shaped generator and a two-question toy generator included with the
+code. In the phase-two rehearsal, the synthetic training and development
+respondents are visible, and every target of the synthetic test respondents
+is masked.\\[3pt]
+\begin{tabular}{@{}llll@{}}\toprule External dataset & Source & Size & Use\\\midrule
+None & --- & --- & ---\\\bottomrule\end{tabular}
+\paragraph{Compute.} The CPU rehearsals in Appendix~\ref{results-local} use
+Python 3.10.11, NumPy 2.2.6, pandas 2.3.3, PyYAML 6.0.3 and PyTorch
+2.14.1+cpu. They invoke the uniform-prior branch. We also tested Qwen on an
+RTX 5060 Laptop GPU with PyTorch 2.7.1, CUDA 12.8 and Transformers 4.53.3.
+The tokenizer and language model both require public
+checkpoint revision \texttt{989aa7980e4cf806f80c7fef2b1adb7bc71aa306}.
+
+\newpage
+\section{Results}
+\subsection{Test-phase leaderboard results}
+The official Test leaderboard lists \texttt{1057678} for Survey Routing
+(\texttt{submission\_routed.zip}). We report its four displayed scores at the
+leaderboard's precision~\cite{leaderboard}.\\[4pt]
+\begin{tabular}{@{}lrrrr@{}}\toprule Split & Grand Prize & UNICEF & World Bank & UNHCR\\\midrule
+Test & 0.35 & 0.33 & 0.21 & 0.52\\\bottomrule\end{tabular}
+\subsection{Breakdown by population, survey, or question type}
+The highest skill was on UNHCR (0.52) and the lowest was on World Bank (0.21).
+All three instrument scores exceeded the smoothed marginal reference of zero.
+These aggregates do not identify which respondent groups or questions account
+for the differences.
+
+\section{Reproducibility}
+The upstream starter revision is \texttt{5c69e17}. The team implementation
+is in \texttt{submission\_routed/} and carries the MIT license. From the
+repository root, these commands rebuild and validate the competition archive.
+\begin{small}\begin{verbatim}
+python tools/pack_candidate.py submission_routed submission_routed.zip
+python tools/check_submission_zip.py submission_routed.zip
+\end{verbatim}\end{small}
+The SHA-256 digest of the submission archive is\\
+{\small\texttt{0bd3220a562815c8568c6943dbe9ad639274f94389c1f14fa7fc31bca997f84e}}.
+The team repository is available at\\
+\url{https://github.com/ab-naidu/neurips-2026-simulacrabench-survey-routing}.
+Appendix~\ref{config} identifies the model and configuration.
+
+\section{Limitations}
+The public generator enforces skip rules exactly. The UNHCR schema documents
+exceptions and partial overlap between expected branches~\cite{starter}.
+The stress experiment measures the cost of those kinds of deviations at
+invented rates. We do not know the frequency of departures on the Test respondents.
+A single validation split can give unstable weights for rare outcomes.
+Individual predictions do not establish representativeness or subgroup accuracy.
+
+\begin{thebibliography}{9}
+\bibitem{starter} SituatedEvals. \emph{SimulacraBench public starter kit},
+including the external-model baseline and UNHCR schema, 2026.
+\url{https://github.com/SituatedEvals/public/tree/5c69e17}.
+\bibitem{scores} T. Gneiting and A. E. Raftery. Strictly proper scoring rules,
+prediction, and estimation. \emph{JASA}, 102(477), 359--378, 2007.
+\bibitem{qwen} Qwen Team. \emph{Qwen2.5-1.5B-Instruct}, model card and weights.
+\url{https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct}.
+\bibitem{leaderboard} SimulacraBench. \emph{Codabench Test leaderboard},
+submission 1057678, November 17, 2026.
+\url{https://www.codabench.org/api/phases/29773/get_leaderboard/?format=json}.
+\end{thebibliography}
+
+\clearpage
+\appendix
+\section{Full configuration}\label{config}
+\paragraph{Answer distributions.} Starting with the question prior, update
+observed answer counts with two pseudo-observations from the preceding level.
+Apply this update to the whole instrument, the highest-ranked attribute, then
+the pair of highest-ranked attributes. Rank by mutual information with the
+answer among visible, asked rows. Fewer than eight usable observations gives
+zero mutual information. The gate calculation uses two fixed shrinkage
+strengths of eight. Use the marginal ask rate $(a+0.5)/(n+1)$ for an
+unmodeled parent or a missing visible parent value. Masked target parents
+use their predicted distribution.
+\paragraph{Direct predictor.} Use one half-count per outcome for the marginal.
+Shrink each attribute distribution conditional on the outcome toward its
+observed attribute frequencies with strength eight. Add the log marginal to
+the sum of attribute log likelihoods scaled by one of
+$\{0,.05,.1,.2,.35,.5,.75,1\}$. Choose the scale on every fifth visible row
+in the expert's fitting set by mean log score, clipping probabilities below
+$10^{-12}$ for numerical stability. Use scale
+zero with fewer than 100 visible rows, no attributes, or a gain below .001
+nats per cell.
+\paragraph{Mixture.} For each question choose the gate predictor's weight from
+$\{1,.75,.5,.25,0\}$. With $K$ outcomes and probability $q_y$ assigned to the
+observed outcome, maximize the mean of $\log(.001+(1-.001K)q_y)$. Scores
+within $10^{-12}$ of the best favor the larger gate weight. With fewer than
+100 complete visible rows, use the gate predictor alone.
+\paragraph{Optional question prior.} The hosted builder reads
+\texttt{Qwen/Qwen2.5-1.5B-Instruct} from \texttt{models.txt}. The model
+uses the offline cache and the checkpoint's chat template. For each question
+it receives the following single user message, without demonstrations.
+\begin{small}\begin{verbatim}
+You are estimating how a survey respondent answered.
+
+Survey: {first 600 characters of the public survey description}
+
+Question: {schema question text}
+
+Options:
+A. {first option}
+B. {second option}
+{continue in schema order, up to Z}
+
+Reply with the single letter of the most likely answer.
+\end{verbatim}\end{small}
+For each letter use the larger first-token logit of the bare and space-prefixed
+letter. Softmax over letters. Additional options receive the mean option
+probability before renormalization. If the chat template fails, append a
+newline and \texttt{Answer:} to the message. If the model is unavailable,
+the prior is uniform.
+
+\newpage
+\section{Additional results on synthetic data}\label{results-local}
+\input{local-results-table}
+
+The paired stress test isolates the skip model. It uses three fixed seeds
+(41--43), two questions, 4,000 complete respondents and 2,000 masked
+respondents per seed. The first question has a visible parent. The second
+has a hidden parent that can itself have been skipped. The conditional answer
+model and uniform prior are identical in both arms. Higher log score is better.
+\begin{center}\small
+\begin{tabular}{@{}lrr@{}}\toprule
+Skip-rule regime & Hard rule (nats/cell) & Estimated rates (nats/cell)\\\midrule
+Exact & $-0.510160$ & $-0.510161$\\
+Noisy & $-1.579152$ & $-0.909969$\\\bottomrule
+\end{tabular}\end{center}
+In the noisy regime the probability of asking the first question is .85 or .22
+depending on eligibility. For the second it is .81, .12 or .31 given a positive
+answer, a negative answer or a skipped parent. Both parent types improved on
+all three seeds. Run \texttt{python tests/test\_gate\_stress.py} to reproduce
+this comparison.
+\end{document}

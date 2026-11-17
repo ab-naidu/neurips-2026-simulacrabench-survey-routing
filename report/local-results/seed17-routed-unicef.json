@@ -1,0 +1,79 @@
+{
+  "data": "_sandbox/seed17/unicef",
+  "schema": "data/unicef.json",
+  "phase": 2,
+  "seed": 0,
+  "n_respondents": 19846,
+  "n_held_out": 3473,
+  "n_cells": 41676,
+  "status": "PASS",
+  "skill": 0.3838323834078923,
+  "reported_skill": 0.3838323834078923,
+  "log_score": -0.5824118866219448,
+  "marginal_reference": 0.9452166438787245,
+  "privacy": {
+    "noised": false,
+    "round_to": null
+  },
+  "score_normalization": "marginal-v1",
+  "uniform_reference": 1.5620418219183347,
+  "uniform_skill": 0.6271470594131161,
+  "uniform_reported_skill": 0.6271470594131161,
+  "postprocessing_scale": 1.6525754513890591,
+  "std_error": 0.005106038511564254,
+  "item_normalized": -0.5824118866219447,
+  "brier": 0.3037292192540691,
+  "baseline_uniform": -1.5620418219183345,
+  "baseline_crowd": -0.9443030253767305,
+  "seconds": 6.07039213180542,
+  "by_item": {
+    "Q06": {
+      "log_score": -0.7412725350882636,
+      "n_cells": 3473
+    },
+    "Q07": {
+      "log_score": -0.5246281374683928,
+      "n_cells": 3473
+    },
+    "Q08": {
+      "log_score": -0.4400944713501782,
+      "n_cells": 3473
+    },
+    "Q09": {
+      "log_score": -0.6606460250519678,
+      "n_cells": 3473
+    },
+    "Q10": {
+      "log_score": -0.8777955390063402,
+      "n_cells": 3473
+    },
+    "Q11": {
+      "log_score": -1.213499009567434,
+      "n_cells": 3473
+    },
+    "Q12": {
+      "log_score": -1.4810621307024714,
+      "n_cells": 3473
+    },
+    "Q14": {
+      "log_score": -0.19738501922452265,
+      "n_cells": 3473
+    },
+    "Q15": {
+      "log_score": -0.24804767283566442,
+      "n_cells": 3473
+    },
+    "Q16": {
+      "log_score": -0.15135578987249237,
+      "n_cells": 3473
+    },
+    "Q17": {
+      "log_score": -0.23934208944561244,
+      "n_cells": 3473
+    },
+    "Q18": {
+      "log_score": -0.21381421984999605,
+      "n_cells": 3473
+    }
+  }
+}

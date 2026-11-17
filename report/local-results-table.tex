@@ -1,0 +1,37 @@
+Table~\ref{tab:practice} compares candidates on the same synthetic respondents
+for each seed. Seed 0 was used during development. Seed 17 was generated after
+the routing grid was fixed. We repeated the UNICEF evaluation after correcting
+the encoding of skips in a visible attribute. Both seeds use the final-phase split
+and scorer. Following the October 26 scoring update, instrument skill is
+$1-L/L_{\mathrm{marginal}}$, where each $L$ is mean negative log probability
+on the same masked cells and the reference adds a half-count per category.
+The mean gives each instrument equal weight.
+\begin{center}\small
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+Seed & Model & UNICEF & World Bank & UNHCR & Mean\\\midrule
+0 & Direct predictor & .3801 & .2621 & .2145 & .2856\\
+0 & Organizer hard gates & .3693 & .2395 & .1482 & .2523\\
+0 & Estimated gates & .3693 & .2395 & .1482 & .2523\\
+0 & Per-question mixture & .3882 & .2723 & .2152 & .2919\\\midrule
+17 & Direct predictor & .3710 & .2712 & .2110 & .2844\\
+17 & Per-question mixture & .3838 & .2837 & .2115 & .2930\\
+\bottomrule
+\end{tabular}
+\refstepcounter{table}\label{tab:practice}\\[3pt]
+Table \thetable. Local normalized skill with a uniform question prior.
+\end{center}
+Across both seeds the largest gains over the direct predictor occurred on
+UNICEF and World Bank. On UNHCR the gains were below .001 skill. The sum of
+the three CPU grader times for the mixture was about 84 s on seed 0 and 80 s
+on seed 17. These are single measurements including local grader overhead.
+
+In a separate offline load check, Qwen produced valid priors for all 301
+questions on an RTX 5060 Laptop GPU, with nonuniform priors on 296 questions.
+With 120 visible and one masked respondent per schema, PyTorch reserved at
+most 3,474 MiB of GPU memory. On the full seed-0 rehearsal the Qwen-enabled
+mixture scored .3882 for UNICEF, .2723 for World Bank and .2152 for UNHCR.
+All three match the uniform-prior mixture to four decimals. The grader
+covered 442,425 masked cells in 504 s across three separate processes,
+including a model load in each. The official scores do not identify which
+prior ran on the hosted H100 or its runtime and peak memory.

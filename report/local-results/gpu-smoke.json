@@ -1,0 +1,32 @@
+{
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+  "torch": "2.7.1+cu128",
+  "cuda_version": "12.8",
+  "transformers": "4.53.3",
+  "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+  "dtype": "torch.bfloat16",
+  "load_seconds": 95.53,
+  "instruments": [
+    {
+      "schema": "unicef",
+      "items": 12,
+      "nonuniform_priors": 12,
+      "seconds_after_load": 2.489
+    },
+    {
+      "schema": "world_bank",
+      "items": 76,
+      "nonuniform_priors": 76,
+      "seconds_after_load": 6.463
+    },
+    {
+      "schema": "unhcr",
+      "items": 213,
+      "nonuniform_priors": 208,
+      "seconds_after_load": 15.602
+    }
+  ],
+  "peak_gpu_reserved_mib": 3474,
+  "peak_gpu_allocated_mib": 3071
+}
